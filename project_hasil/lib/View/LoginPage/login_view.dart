@@ -1,16 +1,66 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:project_hasil/Viewmodel/login_viewmodel.dart';
 
-class LoginView extends StatelessWidget {
+class LoginView extends StatefulWidget {
   const LoginView({super.key});
 
   @override
+  State<LoginView> createState() => _LoginViewState();
+}
+
+class _LoginViewState extends State<LoginView> {
+  final TextEditingController usernameController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> handleLogin() async {
+    final username = usernameController.text.trim();
+    final password = passwordController.text.trim();
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Username dan password wajib diisi'),
+        ),
+      );
+      return;
+    }
+
+    final viewModel = context.read<LoginViewModel>();
+
+    final success = await viewModel.login(
+      username: username,
+      password: password,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.pushReplacementNamed(context, '/dashboard');
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(viewModel.errorMessage ?? 'Login gagal'),
+        ),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final loginVM = context.watch<LoginViewModel>();
+
     return Scaffold(
       body: Container(
         width: double.infinity,
         height: double.infinity,
-
-        // Background gradient
         decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -21,33 +71,24 @@ class LoginView extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
-
         child: Center(
           child: Container(
             width: 350,
             padding: const EdgeInsets.all(30),
-
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              // border: Border.all(
-              //   color: Color(0xFF8698F0),
-              //   width: 2,
-              // ),
               boxShadow: [
                 BoxShadow(
                   color: Colors.black.withOpacity(0.2),
                   blurRadius: 15,
                   offset: const Offset(0, 10),
-                )
+                ),
               ],
             ),
-
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-
-                /// LOGO
                 Image.asset(
                   "assets/images/logodisdukcapil.png",
                   height: 100,
@@ -70,11 +111,12 @@ class LoginView extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                /// USERNAME
                 TextField(
+                  controller: usernameController,
+                  keyboardType: TextInputType.text,
                   decoration: InputDecoration(
                     hintText: "Username",
-                    prefixIcon: const Icon(Icons.mail_outline),
+                    prefixIcon: const Icon(Icons.person_outline),
                     filled: true,
                     fillColor: const Color(0xFFF2F2F2),
                     border: OutlineInputBorder(
@@ -86,8 +128,8 @@ class LoginView extends StatelessWidget {
 
                 const SizedBox(height: 15),
 
-                /// PASSWORD
                 TextField(
+                  controller: passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
                     hintText: "Password",
@@ -104,7 +146,6 @@ class LoginView extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                /// LOGIN BUTTON
                 SizedBox(
                   width: 150,
                   height: 45,
@@ -121,26 +162,34 @@ class LoginView extends StatelessWidget {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: ElevatedButton(
-                       onPressed: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
+                      onPressed: loginVM.isLoading ? null : handleLogin,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
+                        disabledBackgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: const Text(
-                        "Login",
-                        style: TextStyle(
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: loginVM.isLoading
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              "Login",
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
-                )
+                ),
               ],
             ),
           ),
